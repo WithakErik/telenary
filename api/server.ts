@@ -63,6 +63,7 @@ function handleConnection(socket: Socket) {
   socket.on("disconnect", () => handleDisconnect(socket));
   socket.on("join-room", (data) => handleJoinRoom(io, socket, data));
   socket.on("start-game", () => handleStartGame);
+  socket.on("submit-phrase", (data) => handleSubmitPhrase(io, socket, data));
 }
 
 function handleCreateRoom(
@@ -73,25 +74,31 @@ function handleCreateRoom(
   const roomId = uuidv4().slice(0, 6);
   if (data.hasOwnProperty(roomId)) handleCreateRoom(io, socket, data);
   data.roomId = roomId;
-  rooms[roomId] = new Game();
+  rooms[roomId] = { game: new Game() };
   handleJoinRoom(io, socket, data);
 }
 function handleDisconnect(socket: Socket) {
   console.log("Disconnecting");
+  const { roomId } = connections[socket.id];
+  if (!roomId || !rooms[roomId] || !rooms[roomId].game) return;
+  const { game } = rooms[roomId];
+  game.removePlayer(socket.id);
   delete connections[socket.id];
 }
 function handleJoinRoom(io: Server, socket: Socket, data: any) {
-  const { playerName, roomId } = data;
+  const { name, roomId } = data;
   if (!rooms.hasOwnProperty(roomId)) return socket.emit("room-not-found");
-  const game = rooms[roomId];
+  const { game } = rooms[roomId];
+  socket.join(roomId);
   if (game.isReady()) {
     io.to(roomId).emit("game-is-ready");
   } else {
     socket.emit("waiting-for-more-players", { roomId });
+    // Remove next when
+    io.to(roomId).emit("game-is-ready", { roundStartType: "phrase" });
   }
-  // socket.join(roomId);
-  // game.addPlayer({ name, socket });
-  // connections[socket.id].roomId = roomId;
+  game.addPlayer({ name, socket });
+  connections[socket.id].roomId = roomId;
   // socket.emit("sucessfully-joined-room", { roomId });
   // if (game.getPlayerCount() > 3) {
   //   const { name } = game.players[game.currentChooserSocketId];
@@ -100,6 +107,23 @@ function handleJoinRoom(io: Server, socket: Socket, data: any) {
   //     "enable-start-game-button"
   //   );
   // }
-  // io.to(roomId).emit("update-players", { players: game.getPublicPlayerData() });
+  io.to(roomId).emit("update-players", { playerCount: game.players.length });
 }
 function handleStartGame(socket: Socket) {}
+function handleSubmitPhrase(io: Server, socket: Socket, data: any) {
+  const { roomId } = connections[socket.id];
+  const { game } = rooms[roomId];
+  game.addPhraseToStack(socket.id, data);
+  if (game.allPlayersHaveSubmitted()) {
+    // Also check for end of game
+    if (game.roundIsFinished()) {
+    } else {
+      // We'll need to pass the stacks and emit the new `type` and `previousPhraseOrPicutre` to each player
+    }
+  } else {
+    socket.emit("waiting-for-players-to-submit");
+  }
+  // Remove next line when going live
+  socket.emit("waiting-for-players-to-submit");
+  game.setNextTurn();
+}

@@ -16,13 +16,7 @@ const loadingStyle = {
   width: "100%",
 };
 
-export default function Loading({
-  isLoading,
-  loadingMessage,
-}: {
-  isLoading: boolean;
-  loadingMessage: string;
-}) {
+export default function Loading({ isLoading }: { isLoading: boolean }) {
   return (
     <>
       {isLoading && (
@@ -35,7 +29,6 @@ export default function Loading({
           }}
         >
           <Spin indicator={antIcon} />
-          <b style={{ color: "#ffffff" }}>{loadingMessage}</b>
         </div>
       )}
     </>
