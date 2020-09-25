@@ -103,6 +103,10 @@ export default function App() {
         message: "A player with that name is already in the room",
       })
     );
+    socket.on("game-has-finished", (stacks: any) => {
+      setGameState("end-game");
+      console.log(stacks);
+    });
     socket.on(
       "game-is-ready",
       ({ roundStartType }: { roundStartType: string }) => {
@@ -182,12 +186,19 @@ export default function App() {
       if (!phrase)
         return openNotification({ message: "You must enter a phrase" });
       setPhrase("");
-      socket.emit("submit-card", { content: phrase, type: "phrase" });
+      setTimeout(
+        () => socket.emit("submit-card", { content: phrase, type: "phrase" }),
+        555
+      );
     } else {
       const dataURL = canvasReference.current!.toDataURL();
       handleClear();
-      socket.emit("submit-card", { content: dataURL, type: "picture" });
+      setTimeout(
+        () => socket.emit("submit-card", { content: dataURL, type: "picture" }),
+        555
+      );
     }
+    setGameState("waiting");
   };
 
   /*    MOUSE EVENT   */

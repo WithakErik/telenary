@@ -13,7 +13,7 @@ export type Player = {
 };
 type Card = {
   content: string;
-  playerId: string;
+  playerName: string;
   type: "phrase" | "picture";
 };
 type Stack = {
@@ -32,20 +32,22 @@ class Game {
   addCardToStack = (playerId: string, data: Card) => {
     const { type, content } = data;
     if (this.stacks.length < this.players.length) {
-      this.stacks.push({ cards: [{ type, content, playerId }] });
+      this.stacks.push({
+        cards: [
+          { type, content, playerName: this.getPlayerFromId(playerId).name },
+        ],
+      });
+      this.setPlayerCurrentStackIndex(playerId, this.stacks.length - 1);
     } else {
       this.stacks[this.getPlayerFromId(playerId).currentStackIndex].cards.push({
         type,
         content,
-        playerId,
+        playerName: this.getPlayerFromId(playerId).name,
       });
     }
   };
-  addPlayer = ({
-    name,
-    socket,
-    currentStackIndex = this.players.length,
-  }: Player) => this.players.push({ name, socket, currentStackIndex });
+  addPlayer = ({ name, socket }: Player) =>
+    this.players.push({ name, socket, currentStackIndex: 0 });
   allPlayersHaveSubmitted = () =>
     this.stacks.length === this.players.length &&
     this.stacks.every((stack) => stack.cards.length >= this.currentRound + 1);
@@ -56,7 +58,6 @@ class Game {
   getPlayerStack = (playerId: string) =>
     this.stacks[this.getPlayerFromId(playerId).currentStackIndex];
   gameIsReady = () => this.players.length >= MINIMUM_PLAYER_COUNT;
-  nextTurn = () => this.currentRound++;
   passStacks = () => {};
   removePlayer = (playerId: string) =>
     (this.players = this.players.filter(
@@ -67,15 +68,19 @@ class Game {
   };
   gameIsFinished = () =>
     this.stacks.every((stack) => stack.cards.length >= this.players.length);
+  setPlayerCurrentStackIndex = (playerId: string, index: number) =>
+    (this.getPlayerFromId(playerId).currentStackIndex = index);
   setNextTurn = () => {
     this.currentRound++;
-    this.players.map((player) => ({
-      ...player,
-      currentStackIndex: (player.currentStackIndex + 1) % this.players.length,
-    }));
+    this.players = this.players.map((player) => {
+      const nextStackIndex =
+        (player.currentStackIndex + 1) % this.players.length;
+      return {
+        ...player,
+        currentStackIndex: nextStackIndex,
+      };
+    });
   };
 }
 
 module.exports = Game;
-
-// Stacks will have an id

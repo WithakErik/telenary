@@ -69,16 +69,16 @@ export function handleSubmitCard(io: Server, socket: Socket, data: any) {
   game.addCardToStack(socket.id, data);
   if (game.allPlayersHaveSubmitted()) {
     if (game.gameIsFinished()) {
-      return io.to(roomId).emit("round-has-finished", game.stacks);
+      return io.to(roomId).emit("game-has-finished", game.stacks);
     } else {
       game.setNextTurn(io);
-      return game.players.map((player: Player) =>
-        player.socket.emit(
-          "begin-new-round",
-          game.stacks[game.getPlayerFromId(player.socket.id).currentStackIndex]
-            .cards[game.currentRound - 1]
-        )
-      );
+      return game.players.map((player: Player) => {
+        const playerCurrentStackIndex = game.getPlayerFromId(player.socket.id)
+          .currentStackIndex;
+        const playersCurrentStack =
+          game.stacks[playerCurrentStackIndex].cards[game.currentRound - 1];
+        player.socket.emit("begin-new-round", playersCurrentStack);
+      });
     }
   }
   return socket.emit("waiting-for-players-to-submit");
