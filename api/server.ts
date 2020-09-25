@@ -12,7 +12,7 @@ import {
   handleDisconnect,
   handleJoinRoom,
   handleStartGame,
-  handleSubmitPhrase,
+  handleSubmitCard,
 } from "./handlers";
 
 /*    VARIABLES   */
@@ -58,5 +58,5 @@ function handleConnection(socket: Socket) {
   socket.on("disconnect", () => handleDisconnect(socket));
   socket.on("join-room", (data) => handleJoinRoom(io, socket, data));
   socket.on("start-game", () => handleStartGame);
-  socket.on("submit-phrase", (data) => handleSubmitPhrase(io, socket, data));
+  socket.on("submit-card", (data) => handleSubmitCard(io, socket, data));
 }

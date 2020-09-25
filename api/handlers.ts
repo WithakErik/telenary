@@ -63,20 +63,23 @@ export function handleJoinRoom(io: Server, socket: Socket, data: any) {
     .emit("update-players", { playerCount: game.players.length });
 }
 export function handleStartGame(socket: Socket) {}
-export function handleSubmitPhrase(io: Server, socket: Socket, data: any) {
+export function handleSubmitCard(io: Server, socket: Socket, data: any) {
   const { roomId } = connections[socket.id];
   const { game } = rooms[roomId];
-  game.addPhraseToStack(socket.id, data);
+  game.addCardToStack(socket.id, data);
   if (game.allPlayersHaveSubmitted()) {
-    // Also check for end of game
-    if (game.roundIsFinished()) {
+    if (game.gameIsFinished()) {
+      return io.to(roomId).emit("round-has-finished", game.stacks);
     } else {
-      // We'll need to pass the stacks and emit the new `type` and `previousPhraseOrPicutre` to each player
+      game.setNextTurn(io);
+      return game.players.map((player: Player) =>
+        player.socket.emit(
+          "begin-new-round",
+          game.stacks[game.getPlayerFromId(player.socket.id).currentStackIndex]
+            .cards[game.currentRound - 1]
+        )
+      );
     }
-  } else {
-    return socket.emit("waiting-for-players-to-submit");
   }
-  // Remove next line when going live
-  socket.emit("waiting-for-players-to-submit");
-  return game.setNextTurn();
+  return socket.emit("waiting-for-players-to-submit");
 }

@@ -6,60 +6,74 @@ const MINIMUM_PLAYER_COUNT = 4;
 // const MAXIMUM_PLAYER_COUNT = 10;
 
 // We'll update this once we build Player
-export type Player = { name: string; socket: Socket };
+export type Player = {
+  currentStackIndex: number;
+  name: string;
+  socket: Socket;
+};
+type Card = {
+  content: string;
+  playerId: string;
+  type: "phrase" | "picture";
+};
+type Stack = {
+  cards: Card[];
+};
 
 class Game {
-  currentTurn: number;
-  players: { name: string; socket: Socket }[];
-  stacks: {
-    id: string;
-    stack: { type: "phrase" | "picture"; content: string; playerId: string }[];
-  }[];
+  currentRound: number;
+  players: Player[];
+  stacks: Stack[];
   constructor() {
-    this.currentTurn = 0;
+    this.currentRound = 0;
     this.players = [];
     this.stacks = [];
   }
-  addPhraseToStack = (
-    playerId: string,
-    data: { phrase: string; id?: string }
-  ) => {
-    console.log("adding to stack");
+  addCardToStack = (playerId: string, data: Card) => {
+    const { type, content } = data;
     if (this.stacks.length < this.players.length) {
-      console.log("first stack");
-      this.stacks.push({
-        id: uuidv4(),
-        stack: [{ type: "phrase", content: data.phrase, playerId }],
-      });
+      this.stacks.push({ cards: [{ type, content, playerId }] });
     } else {
-      const stackToAddTo = this.stacks.filter(
-        (stack) => stack.id === data.id
-      )[0];
-      stackToAddTo.stack.push({
-        type: "phrase",
-        content: data.phrase,
+      this.stacks[this.getPlayerFromId(playerId).currentStackIndex].cards.push({
+        type,
+        content,
         playerId,
       });
     }
   };
-  addPlayer = ({ name, socket }: Player) => this.players.push({ name, socket });
+  addPlayer = ({
+    name,
+    socket,
+    currentStackIndex = this.players.length,
+  }: Player) => this.players.push({ name, socket, currentStackIndex });
   allPlayersHaveSubmitted = () =>
-    this.stacks.every((stack) => stack.stack.length >= this.currentTurn + 1);
+    this.stacks.length === this.players.length &&
+    this.stacks.every((stack) => stack.cards.length >= this.currentRound + 1);
   beginRound = () => {};
-  getCurrentType = () => (this.currentTurn % 2 === 0 ? "phrase" : "picture");
+  getCurrentType = () => (this.currentRound % 2 === 0 ? "phrase" : "picture");
+  getPlayerFromId = (playerId: string) =>
+    this.players.filter((player) => player.socket.id === playerId)[0];
+  getPlayerStack = (playerId: string) =>
+    this.stacks[this.getPlayerFromId(playerId).currentStackIndex];
   gameIsReady = () => this.players.length >= MINIMUM_PLAYER_COUNT;
-  nextTurn = () => this.currentTurn++;
+  nextTurn = () => this.currentRound++;
   passStacks = () => {};
   removePlayer = (playerId: string) =>
     (this.players = this.players.filter(
       (player: Player) => player.socket.id !== playerId
     ));
   resetGame = () => {
-    this.currentTurn = 0;
+    this.currentRound = 0;
   };
-  roundIsFinished = () =>
-    this.stacks.every((stack) => stack.stack.length >= this.players.length);
-  setNextTurn = () => this.currentTurn++;
+  gameIsFinished = () =>
+    this.stacks.every((stack) => stack.cards.length >= this.players.length);
+  setNextTurn = () => {
+    this.currentRound++;
+    this.players.map((player) => ({
+      ...player,
+      currentStackIndex: (player.currentStackIndex + 1) % this.players.length,
+    }));
+  };
 }
 
 module.exports = Game;

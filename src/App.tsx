@@ -9,6 +9,13 @@ import socketIOClient from "socket.io-client";
 /*    INTERNAL IMPORTS    */
 import Loading from "./components/Loading";
 
+/*    TYPES   */
+type Card = {
+  content: string;
+  playerId: string;
+  type: "phrase" | "picture";
+};
+
 /*    VARIABLES   */
 const ENDPOINT = "http://localhost:5555";
 const socket = socketIOClient.connect(ENDPOINT);
@@ -39,6 +46,20 @@ const headerStyle = {
   padding: 10,
 };
 
+/*    TODO:
+
+Build stacks when game is finished
+- Display in order from top to bottom along with player names associated
+- Only one at a time with "Next" at the bottom
+  - Next button will disable once pressed, but will not proceed to the next card in the stack unless the time runs down (60s?) or all players have pressed "Next"
+- Last stack will have "New Game?" at the bottom and the logic will be the same as when joining a room (after game is finished, all players set to inactive? then set back to active once they join again?)
+
+Block new users from playing if joining late
+
+Handle when a player leaves mid game
+
+*/
+
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [roomId, setRoomId] = useState("");
@@ -61,6 +82,22 @@ export default function App() {
   const [context, setContext] = useState<CanvasRenderingContext2D>();
 
   useEffect(() => {
+    socket.on("begin-new-round", (data: Card) => {
+      setGameState("playing");
+      if (data.type === "phrase") {
+        setRoundType("picture");
+        setCurrentPhrase(data.content);
+      } else {
+        setRoundType("phrase");
+        const canvas = canvasReference && canvasReference.current;
+        const context = canvas!.getContext("2d");
+        const image = new Image();
+        image.src = data.content;
+        image.onload = () => {
+          context!.drawImage(image, 0, 0);
+        };
+      }
+    });
     socket.on("duplicate-player-name", () =>
       openNotification({
         message: "A player with that name is already in the room",
@@ -70,13 +107,11 @@ export default function App() {
       "game-is-ready",
       ({ roundStartType }: { roundStartType: string }) => {
         setGameState("playing");
+        // Next line is for development purposes
         // roundStartType = "picture";
         setRoundType(roundStartType);
       }
     );
-    socket.on("round-is-phrase", ({ picture }: { picture: string }) => {
-      console.log(picture);
-    });
     socket.on("room-not-found", () =>
       openNotification({ message: "Room not found" })
     );
@@ -102,13 +137,13 @@ export default function App() {
         return openNotification({
           message: "Unable to build canvas for drawing",
         });
-      const ctx = canvas.getContext("2d");
-      if (!ctx)
+      const context = canvas.getContext("2d");
+      if (!context)
         return openNotification({
           message: "Unable to build canvas for drawing",
         });
-      ctx.clearRect(0, 0, 300, 600);
-      setContext(ctx);
+      context.clearRect(0, 0, 300, 600);
+      setContext(context);
     }
   }, [roundType]);
 
@@ -141,6 +176,18 @@ export default function App() {
     if (!temporaryRoomId)
       return openNotification({ message: "You must first enter a room ID" });
     socket.emit("join-room", { name: playerName, roomId: temporaryRoomId });
+  };
+  const handleSubmit = () => {
+    if (roundType === "phrase") {
+      if (!phrase)
+        return openNotification({ message: "You must enter a phrase" });
+      setPhrase("");
+      socket.emit("submit-card", { content: phrase, type: "phrase" });
+    } else {
+      const dataURL = canvasReference.current!.toDataURL();
+      handleClear();
+      socket.emit("submit-card", { content: dataURL, type: "picture" });
+    }
   };
 
   /*    MOUSE EVENT   */
@@ -198,15 +245,7 @@ export default function App() {
     if (roundType !== "picture") return;
     setMouseIsDown(false);
   };
-  const handleSubmit = () => {
-    if (roundType === "phrase") {
-      if (!phrase)
-        return openNotification({ message: "You must enter a phrase" });
-      socket.emit("submit-phrase", { phrase });
-      setPhrase("");
-    } else {
-    }
-  };
+
   return (
     <Layout style={{ height: "100%", width: "100%" }}>
       <Header style={headerStyle}>
@@ -237,19 +276,26 @@ export default function App() {
             style={{
               display: "flex",
               flexDirection: "column",
-              justifyContent: "space-between",
               height: "100%",
+              justifyContent: "space-between",
               width: 300,
             }}
           >
-            <b>{currentPhrase}</b>
+            <b
+              style={{
+                alignItems: "center",
+                display: "flex",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
+              {currentPhrase}
+            </b>
             <span
               style={{
-                border:
-                  roundType === "picture" ? "5px groove cadetblue" : "none",
+                border: roundType === "picture" ? "5px groove yellow" : "none",
                 display: "flex",
                 flexDirection: "column",
-                padding: 5,
               }}
             >
               <canvas
@@ -328,9 +374,7 @@ export default function App() {
             </span>
             <span
               style={{
-                border:
-                  roundType === "phrase" ? "5px groove cadetblue" : "none",
-                padding: 5,
+                border: roundType === "phrase" ? "5px groove yellow" : "none",
                 marginBottom: 10,
               }}
             >
