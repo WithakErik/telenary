@@ -61,6 +61,11 @@ export default function App() {
   const [context, setContext] = useState<CanvasRenderingContext2D>();
 
   useEffect(() => {
+    socket.on("duplicate-player-name", () =>
+      openNotification({
+        message: "A player with that name is already in the room",
+      })
+    );
     socket.on(
       "game-is-ready",
       ({ roundStartType }: { roundStartType: string }) => {
@@ -69,25 +74,25 @@ export default function App() {
         setRoundType(roundStartType);
       }
     );
+    socket.on("round-is-phrase", ({ picture }: { picture: string }) => {
+      console.log(picture);
+    });
     socket.on("room-not-found", () =>
       openNotification({ message: "Room not found" })
     );
     socket.on("success", () => {
       setIsLoading(false);
     });
-    socket.on("waiting-for-more-players", ({ roomId }: { roomId: string }) => {
-      setIsLoading(false);
-      setRoomId(roomId);
-      setGameState("waiting");
-    });
-    socket.on("round-is-phrase", ({ picture }: { picture: string }) => {
-      console.log(picture);
-    });
     socket.on(
       "update-players",
       ({ playerCount: numberOfPlayer }: { playerCount: number }) =>
         setPlayerCount(numberOfPlayer)
     );
+    socket.on("waiting-for-more-players", ({ roomId }: { roomId: string }) => {
+      setIsLoading(false);
+      setRoomId(roomId);
+      setGameState("waiting");
+    });
     socket.on("waiting-for-players-to-submit", () => setGameState("waiting"));
   }, []);
   useEffect(() => {
@@ -135,7 +140,7 @@ export default function App() {
       return openNotification({ message: "You must first enter your name" });
     if (!temporaryRoomId)
       return openNotification({ message: "You must first enter a room ID" });
-    socket.emit("join-room", { roomId: temporaryRoomId });
+    socket.emit("join-room", { name: playerName, roomId: temporaryRoomId });
   };
 
   /*    MOUSE EVENT   */

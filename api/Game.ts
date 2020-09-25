@@ -6,7 +6,7 @@ const MINIMUM_PLAYER_COUNT = 4;
 // const MAXIMUM_PLAYER_COUNT = 10;
 
 // We'll update this once we build Player
-type Player = { name: string; socket: Socket };
+export type Player = { name: string; socket: Socket };
 
 class Game {
   currentTurn: number;
@@ -20,21 +20,6 @@ class Game {
     this.players = [];
     this.stacks = [];
   }
-  allPlayersHaveSubmitted = () =>
-    this.stacks.every((stack) => stack.stack.length >= this.currentTurn + 1);
-  addPlayer = ({ name, socket }: Player) => this.players.push({ name, socket });
-  isReady = () => this.players.length >= MINIMUM_PLAYER_COUNT;
-  nextTurn = () => this.currentTurn++;
-  removePlayer = (playerId: string) =>
-    (this.players = this.players.filter(
-      (player: Player) => player.socket.id !== playerId
-    ));
-  resetGame = () => {
-    this.currentTurn = 0;
-  };
-  getCurrentType = () => (this.currentTurn % 2 === 0 ? "phrase" : "picture");
-  beginRound = () => {};
-  passStacks = () => {};
   addPhraseToStack = (
     playerId: string,
     data: { phrase: string; id?: string }
@@ -56,6 +41,21 @@ class Game {
         playerId,
       });
     }
+  };
+  addPlayer = ({ name, socket }: Player) => this.players.push({ name, socket });
+  allPlayersHaveSubmitted = () =>
+    this.stacks.every((stack) => stack.stack.length >= this.currentTurn + 1);
+  beginRound = () => {};
+  getCurrentType = () => (this.currentTurn % 2 === 0 ? "phrase" : "picture");
+  gameIsReady = () => this.players.length >= MINIMUM_PLAYER_COUNT;
+  nextTurn = () => this.currentTurn++;
+  passStacks = () => {};
+  removePlayer = (playerId: string) =>
+    (this.players = this.players.filter(
+      (player: Player) => player.socket.id !== playerId
+    ));
+  resetGame = () => {
+    this.currentTurn = 0;
   };
   roundIsFinished = () =>
     this.stacks.every((stack) => stack.stack.length >= this.players.length);
