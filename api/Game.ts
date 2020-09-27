@@ -22,10 +22,12 @@ type Stack = {
 
 class Game {
   currentRound: number;
+  isPlaying: boolean;
   players: Player[];
   stacks: Stack[];
   constructor() {
     this.currentRound = 0;
+    this.isPlaying = false;
     this.players = [];
     this.stacks = [];
   }
@@ -66,10 +68,13 @@ class Game {
     ));
   resetGame = () => {
     this.currentRound = 0;
+    this.isPlaying = false;
+    this.players = [];
     this.stacks = [];
   };
   gameIsFinished = () =>
     this.stacks.every((stack) => stack.cards.length >= this.players.length);
+  setIsPlaying = () => (this.isPlaying = true);
   setPlayerCurrentStackIndex = (playerId: string, index: number) =>
     (this.getPlayerFromId(playerId).currentStackIndex = index);
   setNextTurn = () => {

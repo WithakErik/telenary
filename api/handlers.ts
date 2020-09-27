@@ -49,14 +49,17 @@ export function handleJoinRoom(io: Server, socket: Socket, data: any) {
   )
     return socket.emit("duplicate-player-name");
   socket.join(roomId);
+  if (game.isPlaying) return socket.emit("game-already-started");
+  game.addPlayer({ name, socket });
+  console.log("is game ready?", game.gameIsReady());
   if (game.gameIsReady()) {
-    io.to(roomId).emit("game-is-ready");
+    io.to(roomId).emit("game-is-ready", { roundStartType: "phrase", roomId });
   } else {
     socket.emit("waiting-for-more-players", { roomId });
+
     // Remove next when testing with multiple players
-    io.to(roomId).emit("game-is-ready", { roundStartType: "phrase" });
+    // io.to(roomId).emit("game-is-ready", { roundStartType: "phrase" });
   }
-  game.addPlayer({ name, socket });
   connections[socket.id].roomId = roomId;
   return io
     .to(roomId)
@@ -66,11 +69,13 @@ export function handleStartGame(socket: Socket) {}
 export function handleSubmitCard(io: Server, socket: Socket, data: any) {
   const { roomId } = connections[socket.id];
   const { game } = rooms[roomId];
+  if (!game.isPlaying) game.setIsPlaying();
   game.addCardToStack(socket.id, data);
   if (game.allPlayersHaveSubmitted()) {
     if (game.gameIsFinished()) {
-      game.deleteAllPlayers();
-      return io.to(roomId).emit("game-has-finished", game.stacks);
+      const { stacks } = game;
+      game.resetGame();
+      return io.to(roomId).emit("game-has-finished", stacks);
     } else {
       game.setNextTurn(io);
       return game.players.map((player: Player) => {

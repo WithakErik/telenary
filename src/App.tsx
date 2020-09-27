@@ -52,7 +52,6 @@ const headerStyle = {
 /*    TODO:
 
 Build stacks when game is finished
-
 Block new users from playing if joining late
 
 Handle when a player leaves mid game
@@ -80,6 +79,9 @@ export default function App() {
   const [roomId, setRoomId] = useState("");
   const [roundType, setRoundType] = useState("");
   const [stacks, setStacks] = useState<Stack[]>();
+
+  // Add ability to Undo
+  const [strokeHistory, setStrokeHistory] = useState<string[]>([]);
   const [temporaryRoomId, setTemporaryRoomId] = useState("");
 
   useEffect(() => {
@@ -104,6 +106,7 @@ export default function App() {
         message: "A player with that name is already in the room",
       })
     );
+    socket.on("game-already-started", () => setGameState("busy"));
     socket.on("game-has-finished", (stacks: any) => {
       setStacks(stacks);
       console.log("[ stacks ]", stacks);
@@ -114,9 +117,16 @@ export default function App() {
     });
     socket.on(
       "game-is-ready",
-      ({ roundStartType }: { roundStartType: string }) => {
+      ({
+        roomId,
+        roundStartType,
+      }: {
+        roomId: string;
+        roundStartType: string;
+      }) => {
         setGameState("playing");
         setRoundType(roundStartType);
+        setRoomId(roomId);
       }
     );
     socket.on("room-not-found", () =>
@@ -155,7 +165,14 @@ export default function App() {
   }, [roundType]);
 
   /*    HANDLERS    */
-  const handleClear = () => {
+  const handleClear = (undo?: boolean) => {
+    if (undo) {
+      const history: string[] = strokeHistory as string[];
+      const canvas = canvasReference && canvasReference.current;
+      const image = canvas!.toDataURL("image/png");
+      history.push(image);
+      setStrokeHistory(history);
+    }
     context!.clearRect(0, 0, 300, 300);
   };
   const handleCreateRoom = () => {
@@ -177,6 +194,18 @@ export default function App() {
     context!.strokeStyle = lineColor;
     context!.stroke();
   };
+  const handleFinishDraw = () => {
+    if (roundType !== "picture") return;
+    setMouseIsDown(false);
+    if (mouseIsDown) {
+      const canvas = canvasReference && canvasReference.current;
+      const image = canvas!.toDataURL("iamge/png");
+      const history = strokeHistory;
+      history.push(image);
+      setStrokeHistory(history);
+      setMouseIsDown(false);
+    }
+  };
   const handleJoinRoom = () => {
     if (!playerName)
       return openNotification({ message: "You must first enter your name" });
@@ -194,7 +223,11 @@ export default function App() {
     setCurrentStackIndex(currentStackIndex - 1);
   };
   const handlePlayAgain = () => {
-    socket.emit("join-room", { name: playerName, roomId: temporaryRoomId });
+    setStacks([]);
+    setCurrentStackIndex(0);
+    setCurrentPhrase("");
+    setGameState("waiting");
+    socket.emit("join-room", { name: playerName, roomId });
   };
   const handleSubmit = () => {
     if (roundType === "phrase") {
@@ -208,12 +241,26 @@ export default function App() {
     } else {
       const dataURL = canvasReference.current!.toDataURL();
       handleClear();
+      setCurrentPhrase("");
       setTimeout(
         () => socket.emit("submit-card", { content: dataURL, type: "picture" }),
         555
       );
     }
     setGameState("waiting");
+  };
+  const handleUndo = () => {
+    const history = strokeHistory;
+    history.pop();
+    setStrokeHistory(history);
+    const lastImage = history[history.length - 1];
+    if (!lastImage) return handleClear();
+    const image = new Image();
+    image.src = lastImage;
+    image.onload = function () {
+      handleClear();
+      context!.drawImage(image, 0, 0);
+    };
   };
 
   /*    MOUSE EVENT   */
@@ -239,10 +286,6 @@ export default function App() {
     });
     handleDraw(previousX, previousY, x - offsetLeft, y - offsetTop);
   };
-  const handleMouseUp = (event: MouseEvent) => {
-    if (roundType !== "picture") return;
-    setMouseIsDown(false);
-  };
 
   /*    TOUCH EVENTS    */
   const handleTouchStart = (event: TouchEvent) => {
@@ -266,10 +309,6 @@ export default function App() {
       previousY: clientY - offsetTop,
     });
     handleDraw(previousX, previousY, clientX - offsetLeft, clientY - offsetTop);
-  };
-  const handleTouchEnd = (event: TouchEvent) => {
-    if (roundType !== "picture") return;
-    setMouseIsDown(false);
   };
 
   return (
@@ -331,19 +370,24 @@ export default function App() {
                 onTouchStart={(event) => handleTouchStart(event.nativeEvent)}
                 onMouseMove={(event) => handleMouseMove(event.nativeEvent)}
                 onTouchMove={(event) => handleTouchMove(event.nativeEvent)}
-                onMouseUp={(event) => handleMouseUp(event.nativeEvent)}
-                onTouchEnd={(event) => handleTouchEnd(event.nativeEvent)}
-                onMouseOut={(event) => handleMouseUp(event.nativeEvent)}
-                onTouchCancel={(event) => handleTouchEnd(event.nativeEvent)}
+                onMouseUp={handleFinishDraw}
+                onTouchEnd={handleFinishDraw}
+                onMouseOut={handleFinishDraw}
+                onTouchCancel={handleFinishDraw}
                 ref={canvasReference}
                 style={{ background: "#ffffff", boxShadow: "1px 1px 2px grey" }}
               />
               <span
                 style={{ display: roundType === "picture" ? "flex" : "none" }}
               >
-                <Button block onClick={handleClear}>
+                <Button
+                  block
+                  style={{ background: "pink" }}
+                  onClick={() => handleClear(true)}
+                >
                   Clear
                 </Button>
+                <Button onClick={handleUndo}>Undo</Button>
                 <Button
                   block
                   onClick={() => setColorPickerIsOpen(true)}
@@ -447,6 +491,8 @@ export default function App() {
           </div>
         ) : gameState === "finished" ? (
           <h1>Great job!</h1>
+        ) : gameState === "busy" ? (
+          <h1>Game is already in play</h1>
         ) : (
           <></>
         )}
