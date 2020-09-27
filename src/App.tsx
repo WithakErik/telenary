@@ -52,7 +52,6 @@ const headerStyle = {
 /*    TODO:
 
 Build stacks when game is finished
-- Display in order from top to bottom along with player names associated
 - Only one at a time with "Next" at the bottom
   - Next button will disable once pressed, but will not proceed to the next card in the stack unless the time runs down (60s?) or all players have pressed "Next"
 - Last stack will have "New Game?" at the bottom and the logic will be the same as when joining a room (after game is finished, all players set to inactive? then set back to active once they join again?)
