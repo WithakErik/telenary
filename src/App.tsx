@@ -52,7 +52,6 @@ const headerStyle = {
 /*    TODO:
 
 Build stacks when game is finished
-- Last stack will have "New Game?" at the bottom and the logic will be the same as when joining a room (after game is finished, all players set to inactive? then set back to active once they join again?)
 
 Block new users from playing if joining late
 
