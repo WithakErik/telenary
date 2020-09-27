@@ -51,6 +51,6 @@
     "start-local": "run-p start-local-server start-app",
     "start-app": "cross-env NODE_ENV=none webpack-dev-server --hot --dev-tool",
     "start-local-server": "ts-node-dev --debug --inspect --respawn --watch -- ./api/server.ts --wait-ready",
-    "start-server": "pm2 start -n telenary ./api/server.ts --watch --wait-ready --time-start"
+    "start-server": "pm2 start -n telenary ./api/server.ts --watch --wait-ready"
   }
 }
