@@ -52,7 +52,6 @@ const headerStyle = {
 /*    TODO:
 
 Build stacks when game is finished
-Block new users from playing if joining late
 
 Handle when a player leaves mid game
 
