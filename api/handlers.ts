@@ -69,6 +69,7 @@ export function handleSubmitCard(io: Server, socket: Socket, data: any) {
   game.addCardToStack(socket.id, data);
   if (game.allPlayersHaveSubmitted()) {
     if (game.gameIsFinished()) {
+      game.deleteAllPlayers();
       return io.to(roomId).emit("game-has-finished", game.stacks);
     } else {
       game.setNextTurn(io);

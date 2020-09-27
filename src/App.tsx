@@ -12,8 +12,11 @@ import Loading from "./components/Loading";
 /*    TYPES   */
 type Card = {
   content: string;
-  playerId: string;
+  playerName: string;
   type: "phrase" | "picture";
+};
+type Stack = {
+  cards: Card[];
 };
 
 /*    VARIABLES   */
@@ -61,25 +64,27 @@ Handle when a player leaves mid game
 */
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [roomId, setRoomId] = useState("");
-  const [temporaryRoomId, setTemporaryRoomId] = useState("");
-  const [playerCount, setPlayerCount] = useState(0);
-  const [playerName, setPlayerName] = useState("");
+  const canvasReference = useRef<HTMLCanvasElement>(null);
+  const [colorPickerColor, setColorPickerColor] = useState("");
+  const [colorPickerIsOpen, setColorPickerIsOpen] = useState(false);
+  const [context, setContext] = useState<CanvasRenderingContext2D>();
+  const [currentPhrase, setCurrentPhrase] = useState("");
+  const [currentStackIndex, setCurrentStackIndex] = useState(0);
   const [gameState, setGameState] = useState("initial");
-  const [roundType, setRoundType] = useState("");
-  const [phrase, setPhrase] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [lineColor, setLineColor] = useState("#000000");
   const [mouseIsDown, setMouseIsDown] = useState(false);
   const [mouseLocation, setMouseLocation] = useState<{
     previousX: number;
     previousY: number;
   }>();
-  const canvasReference = useRef<HTMLCanvasElement>(null);
-  const [currentPhrase, setCurrentPhrase] = useState("");
-  const [colorPickerIsOpen, setColorPickerIsOpen] = useState(false);
-  const [colorPickerColor, setColorPickerColor] = useState("");
-  const [context, setContext] = useState<CanvasRenderingContext2D>();
+  const [playerCount, setPlayerCount] = useState(0);
+  const [playerName, setPlayerName] = useState("");
+  const [phrase, setPhrase] = useState("");
+  const [roomId, setRoomId] = useState("");
+  const [roundType, setRoundType] = useState("");
+  const [stacks, setStacks] = useState<Stack[]>();
+  const [temporaryRoomId, setTemporaryRoomId] = useState("");
 
   useEffect(() => {
     socket.on("begin-new-round", (data: Card) => {
@@ -104,15 +109,17 @@ export default function App() {
       })
     );
     socket.on("game-has-finished", (stacks: any) => {
-      setGameState("end-game");
-      console.log(stacks);
+      setStacks(stacks);
+      console.log("[ stacks ]", stacks);
+      setGameState("reviewing");
+    });
+    socket.on("game-has-finished", (stacks: Stack[]) => {
+      setStacks(stacks);
     });
     socket.on(
       "game-is-ready",
       ({ roundStartType }: { roundStartType: string }) => {
         setGameState("playing");
-        // Next line is for development purposes
-        // roundStartType = "picture";
         setRoundType(roundStartType);
       }
     );
@@ -179,6 +186,18 @@ export default function App() {
       return openNotification({ message: "You must first enter your name" });
     if (!temporaryRoomId)
       return openNotification({ message: "You must first enter a room ID" });
+    socket.emit("join-room", { name: playerName, roomId: temporaryRoomId });
+  };
+  const handleNextStack = () => {
+    if (currentStackIndex >= stacks!.length - 1)
+      return setCurrentStackIndex(stacks!.length - 1);
+    setCurrentStackIndex(currentStackIndex + 1);
+  };
+  const handlePreviousStack = () => {
+    if (currentStackIndex <= 0) return setCurrentStackIndex(0);
+    setCurrentStackIndex(currentStackIndex - 1);
+  };
+  const handlePlayAgain = () => {
     socket.emit("join-room", { name: playerName, roomId: temporaryRoomId });
   };
   const handleSubmit = () => {
@@ -318,6 +337,8 @@ export default function App() {
                 onTouchMove={(event) => handleTouchMove(event.nativeEvent)}
                 onMouseUp={(event) => handleMouseUp(event.nativeEvent)}
                 onTouchEnd={(event) => handleTouchEnd(event.nativeEvent)}
+                onMouseOut={(event) => handleMouseUp(event.nativeEvent)}
+                onTouchCancel={(event) => handleTouchEnd(event.nativeEvent)}
                 ref={canvasReference}
                 style={{ background: "#ffffff", boxShadow: "1px 1px 2px grey" }}
               />
@@ -399,6 +420,37 @@ export default function App() {
               />
             </span>
           </span>
+        ) : gameState === "reviewing" ? (
+          <div
+            style={{ background: "white", height: "100%", overflowY: "auto" }}
+          >
+            {stacks![currentStackIndex]!.cards.map(
+              (card: Card, index: number) => (
+                <div
+                  style={{
+                    alignItems: "center",
+                    border: "1px solid black",
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: 10,
+                  }}
+                  key={`card-${index}`}
+                >
+                  <span>
+                    Player:
+                    <b>{card.playerName}</b>
+                  </span>
+                  {card.type === "phrase" ? (
+                    <b>{card.content}</b>
+                  ) : (
+                    <img src={card.content} />
+                  )}
+                </div>
+              )
+            )}
+          </div>
+        ) : gameState === "finished" ? (
+          <h1>Great job!</h1>
         ) : (
           <></>
         )}
@@ -451,6 +503,23 @@ export default function App() {
           >
             Submit
           </Button>
+        ) : gameState === "reviewing" ? (
+          <div style={{ display: "flex" }}>
+            {currentStackIndex > 0 && (
+              <Button block onClick={handlePreviousStack}>
+                Previous Stack
+              </Button>
+            )}
+            {currentStackIndex < stacks!.length - 1 ? (
+              <Button block type="primary" onClick={handleNextStack}>
+                Next Stack
+              </Button>
+            ) : (
+              <Button block type="primary" onClick={handlePlayAgain}>
+                Play again?
+              </Button>
+            )}
+          </div>
         ) : (
           <></>
         )}

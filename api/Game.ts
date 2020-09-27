@@ -52,6 +52,7 @@ class Game {
     this.stacks.length === this.players.length &&
     this.stacks.every((stack) => stack.cards.length >= this.currentRound + 1);
   beginRound = () => {};
+  deleteAllPlayers = () => (this.players = []);
   getCurrentType = () => (this.currentRound % 2 === 0 ? "phrase" : "picture");
   getPlayerFromId = (playerId: string) =>
     this.players.filter((player) => player.socket.id === playerId)[0];
@@ -65,6 +66,7 @@ class Game {
     ));
   resetGame = () => {
     this.currentRound = 0;
+    this.stacks = [];
   };
   gameIsFinished = () =>
     this.stacks.every((stack) => stack.cards.length >= this.players.length);
