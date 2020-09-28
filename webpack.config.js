@@ -54,7 +54,6 @@ module.exports = {
       chunks: "all",
     },
   },
-
   plugins: [htmlWebpackPlugin, new CleanWebpackPlugin()],
   resolve: {
     extensions: [".js", ".json", "jsx", ".ts", ".tsx"],
