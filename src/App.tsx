@@ -51,8 +51,6 @@ const headerStyle = {
 
 /*    TODO:
 
-Build stacks when game is finished
-
 Handle when a player leaves mid game
 
 */
