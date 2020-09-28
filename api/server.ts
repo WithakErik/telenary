@@ -38,7 +38,7 @@ PORT: ${process.env.API_PORT || 5555}
   process!.send!("ready");
 });
 
-const io = socketIo(http);
+const io = socketIo(server);
 
 /*    HANDLE SERVER SHUTDOWN    */
 process.on("SIGTERM", async () => {
