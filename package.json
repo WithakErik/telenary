@@ -46,9 +46,7 @@
     "webpack-dev-server": "^3.11.0"
   },
   "scripts": {
-    "build": "run-s  set-max-space webpack-build",
-    "set-max-space": "node --max_old_space_size=8048",
-    "webpack-build": "cross-env NODE_ENV=production webpack --progress",
+    "build": "cross-env NODE_ENV=production webpack --progress",
     "start": "run-p start-server start-app",
     "start-local": "run-p start-local-server start-app",
     "start-app": "cross-env NODE_ENV=none webpack-dev-server --hot --dev-tool",
