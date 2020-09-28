@@ -4,6 +4,7 @@ require("dotenv").config();
 const express = require("express");
 const socketIo = require("socket.io");
 import { Socket } from "socket.io";
+import { Request, Response } from "express";
 
 /*    INTERNAL IMPORTS    */
 import {
@@ -37,6 +38,10 @@ PORT: ${process.env.API_PORT || 5555}
   }
   process!.send!("ready");
 });
+
+app
+  .route("/")
+  .get((request: Request, response: Response) => response.sendStatus(418));
 
 const io = socketIo(server);
 
