@@ -52,7 +52,6 @@ const headerStyle = {
 /*    TODO:
 
 Handle when a player leaves mid game
-
 */
 
 export default function App() {
