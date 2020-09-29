@@ -31,7 +31,7 @@ export function handleCreateRoom(
   return handleJoinRoom(io, socket, data);
 }
 export function handleDisconnect(socket: Socket) {
-  console.log("Disconnecting");
+  // console.log("Disconnecting");
   const { roomId } = connections[socket.id];
   if (!roomId || !rooms[roomId] || !rooms[roomId].game) return;
   const { game } = rooms[roomId];
@@ -51,7 +51,6 @@ export function handleJoinRoom(io: Server, socket: Socket, data: any) {
   socket.join(roomId);
   if (game.isPlaying) return socket.emit("game-already-started");
   game.addPlayer({ name, socket });
-  console.log("is game ready?", game.gameIsReady());
   if (game.gameIsReady()) {
     io.to(roomId).emit("game-is-ready", { roundStartType: "phrase", roomId });
   } else {

@@ -105,7 +105,6 @@ export default function App() {
     socket.on("game-already-started", () => setGameState("busy"));
     socket.on("game-has-finished", (stacks: any) => {
       setStacks(stacks);
-      console.log("[ stacks ]", stacks);
       setGameState("reviewing");
     });
     socket.on("game-has-finished", (stacks: Stack[]) => {

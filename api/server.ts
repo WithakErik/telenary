@@ -47,7 +47,7 @@ const io = socketIo(server);
 
 /*    HANDLE SERVER SHUTDOWN    */
 process.on("SIGTERM", async () => {
-  console.log("\n\nSHUTTING DOWN SERVER!\n\n");
+  // console.log("\n\nSHUTTING DOWN SERVER!\n\n");
   process.exit();
 });
 
@@ -55,7 +55,7 @@ io.on("connection", handleConnection);
 
 function handleConnection(socket: Socket) {
   connections[socket.id] = { roomId: null, socket };
-  console.log("Connected!", socket.id);
+  // console.log("Connected!", socket.id);
   socket.emit("success", "success");
   socket.on("create-room", (data: { name: string; roomId: null }) =>
     handleCreateRoom(io, socket, data)
