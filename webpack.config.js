@@ -7,7 +7,7 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
   filename: "index.html",
 });
 module.exports = {
-  devtool: "source-map",
+  // devtool: "source-map",
   entry: path.join(__dirname, "/src/index.tsx"),
   output: {
     path: path.join(__dirname, "/build"),
