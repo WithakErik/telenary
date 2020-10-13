@@ -50,7 +50,6 @@ const headerStyle = {
 };
 
 /*    TODO:
-
 Handle when a player leaves mid game
 */
 
