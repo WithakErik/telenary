@@ -23,10 +23,10 @@ const http = require("http").Server(app);
 const { NODE_ENV } = process.env;
 
 /*    START SERVER    */
-const server = http.listen(process.env.API_PORT || 5555, () => {
+const server = http.listen(5555, () => {
   if (process.env.NODE_ENV !== "test") {
     console.log(`
-PORT: ${process.env.API_PORT || 5555}
+PORT: ${5555}
 
 ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗     ██╗███╗   ██╗██╗████████╗██╗ █████╗ ████████╗███████╗██████╗ ██╗
 ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗    ██║████╗  ██║██║╚══██╔══╝██║██╔══██╗╚══██╔══╝██╔════╝██╔══██╗██║
