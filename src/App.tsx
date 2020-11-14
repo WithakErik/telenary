@@ -1,6 +1,6 @@
 /*    3RD PARTY IMPORTS   */
-import { Button, Input, Layout, notification } from "antd";
 import { CopyOutlined, HomeOutlined, UserOutlined } from "@ant-design/icons";
+import { Button, Input, Layout, notification, Slider } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { SketchPicker } from "react-color";
 import CopyToClipboard from "react-copy-to-clipboard";
@@ -20,7 +20,8 @@ type Stack = {
 };
 
 /*    VARIABLES   */
-const ENDPOINT = "/";
+// const ENDPOINT = "/";
+const ENDPOINT = "http://localhost:5555/";
 const socket = socketIOClient.connect(ENDPOINT);
 const { Header, Footer, Content } = Layout;
 const { TextArea } = Input;
@@ -62,13 +63,16 @@ export default function App() {
   const [currentPhrase, setCurrentPhrase] = useState("");
   const [currentStackIndex, setCurrentStackIndex] = useState(0);
   const [gameState, setGameState] = useState("initial");
+  const [roundHasPicture, setRoundHasPicture] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [lineColor, setLineColor] = useState("#000000");
+  const [lineWidth, setLineWidth] = useState(1);
   const [mouseIsDown, setMouseIsDown] = useState(false);
   const [mouseLocation, setMouseLocation] = useState<{
     previousX: number;
     previousY: number;
   }>();
+  const [opacity, setOpacity] = useState(1);
   const [playerCount, setPlayerCount] = useState(0);
   const [playerName, setPlayerName] = useState("");
   const [phrase, setPhrase] = useState("");
@@ -81,12 +85,19 @@ export default function App() {
   const [temporaryRoomId, setTemporaryRoomId] = useState("");
 
   useEffect(() => {
+    // /*  DEV START */
+    // setGameState("playing");
+    // setRoundType("picture");
+    // setRoomId(roomId);
+    // /*  DEV STOP  */
+
     socket.on("begin-new-round", (data: Card) => {
       setGameState("playing");
       if (data.type === "phrase") {
         setRoundType("picture");
         setCurrentPhrase(data.content);
       } else {
+        setRoundHasPicture(true);
         setRoundType("phrase");
         const canvas = canvasReference && canvasReference.current;
         const context = canvas!.getContext("2d");
@@ -107,9 +118,9 @@ export default function App() {
       setStacks(stacks);
       setGameState("reviewing");
     });
-    socket.on("game-has-finished", (stacks: Stack[]) => {
-      setStacks(stacks);
-    });
+    // socket.on("game-has-finished", (stacks: Stack[]) => {
+    //   setStacks(stacks);
+    // });
     socket.on(
       "game-is-ready",
       ({
@@ -122,6 +133,7 @@ export default function App() {
         setGameState("playing");
         setRoundType(roundStartType);
         setRoomId(roomId);
+        setRoundHasPicture(false);
       }
     );
     socket.on("room-not-found", () =>
@@ -155,6 +167,8 @@ export default function App() {
           message: "Unable to build canvas for drawing",
         });
       context.clearRect(0, 0, 300, 600);
+      context.lineJoin = "round";
+      context.lineCap = "round";
       setContext(context);
     }
   }, [roundType]);
@@ -185,7 +199,8 @@ export default function App() {
     context!.beginPath();
     context!.moveTo(previousX, previousY);
     context!.lineTo(currentX, currentY);
-    context!.lineWidth = 3;
+    context!.lineWidth = lineWidth;
+    context!.globalAlpha = opacity;
     context!.strokeStyle = lineColor;
     context!.stroke();
   };
@@ -341,6 +356,18 @@ export default function App() {
               width: 300,
             }}
           >
+            <h2 style={{ fontWeight: "bold", textAlign: "center" }}>
+              {roundType === "picture" &&
+                !currentPhrase &&
+                "Draw a picture of something"}
+              {roundType === "picture" &&
+                currentPhrase &&
+                "Draw a picture for the prase:"}
+              {roundType === "phrase" &&
+                !roundHasPicture &&
+                "Write a sentence or phrase"}
+              {roundType === "phrase" && roundHasPicture && "Write a phrase"}
+            </h2>
             <b
               style={{
                 alignItems: "center",
@@ -353,6 +380,8 @@ export default function App() {
             </b>
             <span
               style={{
+                background: "#001529",
+                color: "white",
                 border: roundType === "picture" ? "5px groove yellow" : "none",
                 display: "flex",
                 flexDirection: "column",
@@ -367,29 +396,66 @@ export default function App() {
                 onTouchMove={(event) => handleTouchMove(event.nativeEvent)}
                 onMouseUp={handleFinishDraw}
                 onTouchEnd={handleFinishDraw}
-                onMouseOut={handleFinishDraw}
-                onTouchCancel={handleFinishDraw}
+                // onMouseOut={handleFinishDraw}
+                // onTouchCancel={handleFinishDraw}
                 ref={canvasReference}
                 style={{ background: "#ffffff", boxShadow: "1px 1px 2px grey" }}
               />
               <span
-                style={{ display: roundType === "picture" ? "flex" : "none" }}
+                style={{
+                  display: roundType === "picture" ? "flex" : "none",
+                  flexDirection: "column",
+                }}
               >
-                <Button
-                  block
-                  style={{ background: "pink" }}
-                  onClick={() => handleClear(true)}
-                >
-                  Clear
-                </Button>
-                <Button onClick={handleUndo}>Undo</Button>
-                <Button
-                  block
-                  onClick={() => setColorPickerIsOpen(true)}
-                  type="primary"
-                >
-                  Change Color
-                </Button>
+                <div style={{ padding: "0 10px" }}>
+                  <label style={{ display: "flex", width: "100%" }}>
+                    <div style={{ width: "100%" }}>Line Width:</div>
+                    <Slider
+                      defaultValue={lineWidth}
+                      min={1}
+                      max={100}
+                      onChange={(value: number) => setLineWidth(value)}
+                      step={1}
+                      style={{ width: "100%" }}
+                    />
+                    <div style={{ textAlign: "right", width: "25%" }}>
+                      {lineWidth}
+                    </div>
+                  </label>
+                </div>
+                <div style={{ padding: "0 10px" }}>
+                  <label style={{ display: "flex", width: "100%" }}>
+                    <div style={{ width: "100%" }}>Opacity:</div>
+                    <Slider
+                      defaultValue={opacity}
+                      min={0.01}
+                      max={1}
+                      onChange={(value: number) => setOpacity(value)}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                    />
+                    <div style={{ textAlign: "right", width: "25%" }}>
+                      {opacity}
+                    </div>
+                  </label>
+                </div>
+                <div style={{ display: "flex" }}>
+                  <Button
+                    block
+                    style={{ background: "pink" }}
+                    onClick={() => handleClear(true)}
+                  >
+                    Clear
+                  </Button>
+                  <Button onClick={handleUndo}>Undo</Button>
+                  <Button
+                    block
+                    onClick={() => setColorPickerIsOpen(true)}
+                    type="primary"
+                  >
+                    Change Color
+                  </Button>
+                </div>
               </span>
               {colorPickerIsOpen && (
                 <span
@@ -464,7 +530,9 @@ export default function App() {
                 <div
                   style={{
                     alignItems: "center",
+                    background: "#001529",
                     border: "1px solid black",
+                    color: "white",
                     display: "flex",
                     flexDirection: "column",
                     padding: 10,
