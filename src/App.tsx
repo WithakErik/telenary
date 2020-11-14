@@ -20,8 +20,8 @@ type Stack = {
 };
 
 /*    VARIABLES   */
-// const ENDPOINT = "/";
-const ENDPOINT = "http://localhost:5555/";
+const ENDPOINT = "/";
+// const ENDPOINT = "http://localhost:5555/";
 const socket = socketIOClient.connect(ENDPOINT);
 const { Header, Footer, Content } = Layout;
 const { TextArea } = Input;
