@@ -530,9 +530,9 @@ export default function App() {
                 <div
                   style={{
                     alignItems: "center",
-                    background: "#001529",
+                    background: card.type === "phrase" ? "#001529" : "#ffffff",
                     border: "1px solid black",
-                    color: "white",
+                    color: card.type === "phrase" ? "#ffffff" : "#000000",
                     display: "flex",
                     flexDirection: "column",
                     padding: 10,
